@@ -1,6 +1,6 @@
 # Lynnar
 
-This repo contains experiments and prototypes for an **LLM-assisted event poster design agent** (data tooling + a Figma plugin prototype).
+This repo contains experiments and prototypes for Lynnar, an **LLM-assisted event poster design agent** (data tooling + a Figma plugin prototype).
 
 <p align="center">
   <img src="docs/assets/logo.png" alt="Lynnar logo" width="120" />
@@ -50,3 +50,7 @@ Use Figma’s dev plugin flow and point it to `heatmap-plugin-test/`.
 - Large datasets/exports are ignored via `.gitignore` to keep the repo lightweight.
 - If you change `heatmap-plugin-test/code.ts`, re-run `npm run build` to regenerate `code.js` (Figma loads `code.js`).
 - Copy `env.example` to `.env` to configure API keys.
+
+## Thanks
+
+To Ms. Lingyi (Lynn) Zhang 张凌逸, for her unwavering emotional support throughout the development of this project. Her patience and belief in my work carried me through countless late nights and moments of uncertainty. She is, without question, the best partner I could ever ask for.
