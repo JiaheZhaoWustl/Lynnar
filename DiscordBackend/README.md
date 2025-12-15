@@ -25,6 +25,12 @@ python discord_data_cleaner.py my_discord_export.json
 python discord_data_cleaner.py my_discord_export.json -o cleaned_data.json
 ```
 
+## Setup
+
+```bash
+pip install -r requirements.txt
+```
+
 #### Advanced Usage
 ```bash
 # Create both cleaned and reformatted output

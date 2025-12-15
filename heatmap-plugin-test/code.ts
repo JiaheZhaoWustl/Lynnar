@@ -11,12 +11,21 @@ interface CreateMsg {
 }
 interface SendMsg {
   type: 'send';
-  count: number;          // still comes through, but we ignore it here
+  // legacy field from the starter template (still sent by some UI code)
+  count?: number;
+  selectedOptions: string[];
 }
 interface CancelMsg {
   type: 'cancel';
 }
-type UIMessage = CreateMsg | SendMsg | CancelMsg;
+interface GenerateImageMsg {
+  type: 'generate-image';
+  prompt: string;
+  provider?: string;
+}
+type UIMessage = CreateMsg | SendMsg | CancelMsg | GenerateImageMsg;
+
+const BACKEND_BASE_URL = 'http://localhost:5000';
 
 // ---------- Helper ----------
 function getSelectedFrame() {
@@ -70,8 +79,7 @@ figma.ui.onmessage = (msg: UIMessage) => {
 
     /* 2. NEW: return selected-frame size ------------------- */
     case 'send': {
-      // @ts-ignore: selectedOptions is sent from UI
-      const selectedOptions = (msg as any).selectedOptions || [];
+      const selectedOptions = msg.selectedOptions || [];
       console.log('[CONTROLLER] Options selected by user:', selectedOptions);
       if (!selectedOptions || selectedOptions.length === 0) {
         figma.notify('Please select at least one option.');
@@ -93,7 +101,7 @@ figma.ui.onmessage = (msg: UIMessage) => {
       figma.notify('Generating heatmaps...', { timeout: 10000 });
       figma.ui.postMessage({ type: 'loading', loading: true }); // Show spinner in UI
       // Send frame and child info to backend server for prediction
-      fetch('http://localhost:5000/predict', {
+      fetch(`${BACKEND_BASE_URL}/predict`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -141,6 +149,25 @@ figma.ui.onmessage = (msg: UIMessage) => {
     /* 3. user clicked Cancel ------------------------------- */
     case 'cancel': {
       figma.closePlugin();
+      break;
+    }
+
+    /* 4. Generate image from prompt (fake UI only) --------- */
+    case 'generate-image': {
+      const prompt = msg.prompt;
+      
+      if (!prompt || prompt.trim().length === 0) {
+        figma.ui.postMessage({ type: 'image-generation-error', error: 'No prompt provided' });
+        return;
+      }
+      
+      // Fake UI: show loading and then success (no extra notifications)
+      figma.ui.postMessage({ type: 'image-generation-start' });
+      
+      // Simulate generation delay
+      setTimeout(() => {
+        figma.ui.postMessage({ type: 'image-generation-success' });
+      }, 3000);
       break;
     }
   }

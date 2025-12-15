@@ -1,7 +1,19 @@
 .env
-Scratch_Files
-Label_Studio
-AppleExperiment
-Styles_Keywords_Dataset
-PosterDataset
-AppleExperiment/AppleDatabase.zip 
+
+# Large / scratch data (keep repo lightweight)
+Scratch_Files/
+PosterDataset/
+Styles_Keywords_Dataset/
+AppleExperiment/
+AppleExperiment/AppleDatabase.zip
+
+# Label Studio: keep scripts, ignore heavy exports/outputs
+Label_Studio/annotations_split*/
+Label_Studio/outputs/
+Label_Studio/separated_bounding_boxes/outputs/
+Label_Studio/*.png
+Label_Studio/*.jsonl
+Label_Studio/*.json
+
+Slide_deck_study/
+TODO.txt

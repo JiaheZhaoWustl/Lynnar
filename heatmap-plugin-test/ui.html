@@ -25,7 +25,7 @@
     .divider {
       height: 1px;
       background-color: #e0e0e0;
-      margin: 0 0 16px 0;
+      margin: 0;
       width: 100%;
     }
     
@@ -51,16 +51,26 @@
     }
     
     .chat-header {
-      padding: 12px 16px;
+      padding: 6px 16px;
       background: #f8f9fa;
       border-bottom: 1px solid #e0e0e0;
       flex-shrink: 0;
+    }
+
+    /* Reduce extra spacing under the chat header */
+    .chat-header h2{
+      margin: 0;
+    }
+
+    /* Hide the header title to reclaim vertical space (prompt updates live below) */
+    #chatHeaderTitle{
+      display: none;
     }
     
     .chat-messages {
       flex: 1;
       overflow-y: auto;
-      padding: 12px 16px;
+      padding: 10px 16px;
       background: #f8f9fa;
     }
     
@@ -181,11 +191,11 @@
     .option-buttons {
       display: flex;
       gap: 4px;
-      margin: 8px 0;
-      padding: 8px;
-      background: white;
-      border-radius: 8px;
-      border: 1px solid #e0e0e0;
+      margin: 4px 0;
+      padding: 6px 16px;
+      background: transparent;
+      border-radius: 0;
+      border: none;
       overflow-x: auto;
       overflow-y: hidden;
       white-space: nowrap;
@@ -193,7 +203,7 @@
       scrollbar-color: #c0c0c0 #f8f9fa;
       max-width: 100%;
       box-sizing: border-box;
-      min-height: 40px;
+      min-height: 32px;
       align-items: center;
     }
 
@@ -215,22 +225,64 @@
       background: #a0a0a0;
     }
 
-    .option-buttons::after {
-      content: '';
-      position: absolute;
-      right: 0;
-      top: 0;
-      bottom: 0;
-      width: 20px;
-      background: linear-gradient(to right, transparent, white);
-      pointer-events: none;
-      opacity: 0;
-      transition: opacity 0.3s;
+    /* ==========================================================
+       Scrollbar styling (consistent across all scroll areas)
+       ========================================================== */
+    :root{
+      --scroll-track: #f8f9fa;
+      --scroll-thumb: #cfd4da;
+      --scroll-thumb-hover: #b9c0c7;
     }
 
-    .option-buttons.has-more::after {
-      opacity: 1;
+    /* Firefox */
+    .chat-messages,
+    .option-buttons,
+    #latestPromptText,
+    body{
+      scrollbar-width: thin;
+      scrollbar-color: var(--scroll-thumb) var(--scroll-track);
     }
+
+    /* WebKit */
+    .chat-messages::-webkit-scrollbar,
+    .option-buttons::-webkit-scrollbar,
+    #latestPromptText::-webkit-scrollbar{
+      width: 10px;
+      height: 10px;
+    }
+
+    /* Hide scrollbar arrow buttons (Chrome/Edge) */
+    .chat-messages::-webkit-scrollbar-button,
+    .option-buttons::-webkit-scrollbar-button,
+    #latestPromptText::-webkit-scrollbar-button{
+      width: 0;
+      height: 0;
+      display: none;
+    }
+
+    .chat-messages::-webkit-scrollbar-track,
+    .option-buttons::-webkit-scrollbar-track,
+    #latestPromptText::-webkit-scrollbar-track{
+      background: var(--scroll-track);
+      border: 1px solid var(--btn-border);
+    }
+
+    .chat-messages::-webkit-scrollbar-thumb,
+    .option-buttons::-webkit-scrollbar-thumb,
+    #latestPromptText::-webkit-scrollbar-thumb{
+      background: var(--scroll-thumb);
+      border: 2px solid var(--scroll-track);
+      border-radius: 0; /* match square UI */
+    }
+
+    .chat-messages::-webkit-scrollbar-thumb:hover,
+    .option-buttons::-webkit-scrollbar-thumb:hover,
+    #latestPromptText::-webkit-scrollbar-thumb:hover{
+      background: var(--scroll-thumb-hover);
+    }
+
+    .option-buttons::after { display: none; }
+    .option-buttons.has-more::after { opacity: 0; }
     
     .option-button {
       background: #f0f0f0;
@@ -299,8 +351,21 @@
     
     .loading {
       display: none;
-      margin-top: 10px;
+      margin: 0;
+      padding: 0;
+      background: transparent;
+      border: none;
       text-align: center;
+      /* center the spinner/logo */
+      display: none;
+      align-items: center;
+      justify-content: center;
+      min-height: 56px;
+    }
+
+    /* When JS sets loading.style.display = 'block', keep it centered */
+    .loading[style*="display: block"]{
+      display: flex !important;
     }
     
     .loading svg {
@@ -428,15 +493,27 @@
     }
 
     .latest-prompt-display {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      padding: 12px 16px;
+      /* Neutral (no purple) + fixed height so chat remains visible */
+      background: transparent;
+      color: #111827;
+      padding: 8px 10px;
       border-radius: 8px;
-      margin: 8px 16px;
-      position: sticky;
-      top: 0;
-      z-index: 10;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      margin: 6px 16px;
+      position: static;
+      top: auto;
+      z-index: auto;
+      box-shadow: none;
+      border: 1px solid var(--btn-border);
+      height: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: nowrap;
+    }
+
+    /* Fallback: if something sets display:block inline, force flex layout */
+    .latest-prompt-display[style*="display: block"]{
+      display: flex !important;
     }
 
     .latest-prompt-text {
@@ -444,26 +521,165 @@
       line-height: 1.4;
       font-weight: 500;
       outline: none;
-      min-height: 1.4em;
+      min-height: 1.2em;
       padding: 2px 0;
+      flex: 1;
+      min-width: 0; /* critical: allows flex item to shrink so the button stays on the same row */
+      /* show 1-line prompt by default, expand on focus */
+      max-height: 22px;
+      overflow: hidden;
+      opacity: 1;
+      pointer-events: auto;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .latest-prompt-display:focus-within .latest-prompt-text{
+      max-height: 96px;
+      overflow: auto;
+      opacity: 1;
+      pointer-events: auto;
+      white-space: normal;
     }
 
     .latest-prompt-text:focus {
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 4px;
+      background: rgba(17, 24, 39, 0.04);
+      border-radius: 0;
       padding: 2px 4px;
     }
 
     .latest-prompt-text .diff-added {
-      background: rgba(255, 255, 255, 0.2);
-      color: #ffffff;
+      background: rgba(25, 118, 210, 0.12);
+      color: #111827;
       padding: 2px 4px;
-      border-radius: 3px;
+      border-radius: 0;
       font-weight: 600;
     }
 
     .latest-prompt-text .diff-unchanged {
-      color: #ffffff;
+      color: #111827;
+    }
+
+    /* Generate Image: icon-only, same treatment as send buttons */
+    .generate-image-button{
+      background: #1976d2 !important;
+      color: #ffffff !important;
+      border: none !important;
+      border-radius: 50% !important;
+      width: 32px;
+      height: 32px;
+      padding: 0 !important;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 auto;
+      margin-left: auto; /* push to the right edge */
+    }
+
+    .generate-image-button:hover{
+      background: #1565c0 !important;
+    }
+
+    .generate-image-button svg{
+      width: 16px;
+      height: 16px;
+      display: block;
+    }
+
+    /* ==========================================================
+       Consistent rectangular button system (match top section)
+       Visual-only: no JS / IDs / behavior changes
+       ========================================================== */
+    :root{
+      --btn-bg: #f8f9fa;
+      --btn-bg-hover: #f1f3f5;
+      --btn-bg-active: #e9ecef;
+      --btn-border: #cfd4da;
+      --btn-text: #1f2937;
+      --btn-radius: 0px; /* square corners */
+      --btn-focus: rgba(25, 118, 210, 0.35);
+    }
+
+    /* Square-corner buttons (match top-section rectangle style) */
+    .control-button,
+    .option-button,
+    .generate-image-button,
+    .skip-button{
+      border-radius: var(--btn-radius) !important;
+    }
+
+    /* Send buttons are allowed to stay rounded/circular */
+    #send{
+      border-radius: 50% !important;
+    }
+
+    .send-button{
+      border-radius: 50% !important;
+    }
+
+    button:focus-visible,
+    .option-button:focus-visible{
+      outline: none;
+      box-shadow: 0 0 0 3px var(--btn-focus);
+    }
+
+    /* Make ALL buttons look like the top-section rectangles */
+    #send,
+    .send-button,
+    .control-button,
+    .option-button,
+    .generate-image-button{
+      background: var(--btn-bg) !important;
+      color: var(--btn-text) !important;
+      border: 1px solid var(--btn-border) !important;
+      box-shadow: none !important;
+      transition: background-color 0.12s ease, transform 0.06s ease, border-color 0.12s ease;
+    }
+
+    #send:hover,
+    .send-button:hover,
+    .control-button:hover,
+    .option-button:hover,
+    .generate-image-button:hover{
+      background: var(--btn-bg-hover) !important;
+      border-color: #b9c0c7 !important;
+    }
+
+    #send:active,
+    .send-button:active,
+    .control-button:active,
+    .option-button:active,
+    .generate-image-button:active{
+      background: var(--btn-bg-active) !important;
+      transform: translateY(1px);
+    }
+
+    #send:disabled,
+    .send-button:disabled,
+    .control-button:disabled,
+    .option-button.disabled,
+    .generate-image-button:disabled{
+      opacity: 0.55;
+      cursor: not-allowed !important;
+      transform: none !important;
+    }
+
+    /* Keep icon buttons readable: ensure SVG uses currentColor */
+    #send svg,
+    .send-button svg{
+      color: currentColor;
+    }
+
+    /* Skip button: same rectangle style, subtle warning tint */
+    .skip-button{
+      background: #fff5f5 !important;
+      border-color: #f1b4b4 !important;
+      color: #8a1f1f !important;
+    }
+
+    .skip-button:hover{
+      background: #ffecec !important;
+      border-color: #ea9a9a !important;
     }
   </style>
 </head>
@@ -503,19 +719,24 @@
   <!-- Chat Section -->
   <div class="chat-section">
     <div class="chat-header">
-      <h2>Prompt Refinement</h2>
+      <h2 id="chatHeaderTitle">Prompt Refinement</h2>
     </div>
     
     <!-- Editable Prompt Display -->
     <div class="latest-prompt-display" id="latestPromptDisplay" style="display: none;">
       <div class="latest-prompt-text" id="latestPromptText" contenteditable="true"></div>
+      <button type="button" id="generateImageButton" class="generate-image-button" title="Generate image with Midjourney/DALL-E">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+          <path d="M8 2L14 8L12.6 9.4L9 5.8V16H7V5.8L3.4 9.4L2 8L8 2Z"/>
+        </svg>
+      </button>
     </div>
     
     <div class="chat-messages" id="chatMessages">
       <div class="message assistant">
         <div class="message-avatar">AI</div>
         <div class="message-content">
-          Hello! I'm your prompt refinement assistant. Type your prompt below and I'll help you refine it for better layout generation.
+          Hello! I'm Lynnar, your design companion. Type your prompt below and I'll help you refine it.
         </div>
       </div>
     </div>
@@ -525,7 +746,6 @@
         <circle cx="16" cy="16" r="14" stroke="#888" stroke-width="4" fill="none" opacity="0.2"/>
         <circle cx="16" cy="16" r="14" stroke="#1976d2" stroke-width="4" fill="none" stroke-dasharray="40 60"/>
       </svg>
-      <div>AI is thinking...</div>
     </div>
     
     <div class="chat-input-container">
@@ -567,7 +787,9 @@ const chatForm = document.getElementById('chatForm');
 const loading = document.getElementById('loading');
 const skipButton = document.getElementById('skipButton');
 const latestPromptDisplay = document.getElementById('latestPromptDisplay');
+const generateImageButton = document.getElementById('generateImageButton');
 const latestPromptText = document.getElementById('latestPromptText');
+const chatHeaderTitle = document.getElementById('chatHeaderTitle');
 const sendBtn = document.getElementById('send');
 
 // Auto-resize textarea
@@ -629,7 +851,8 @@ function updateLatestPromptDisplay(prompt) {
       // Show plain text when editing or no changes
       latestPromptText.textContent = cleanPrompt;
     }
-    latestPromptDisplay.style.display = 'block';
+    // Must be flex so the prompt and right-side button stay on the same row
+    latestPromptDisplay.style.display = 'flex';
   } else {
     latestPromptDisplay.style.display = 'none';
   }
@@ -1391,7 +1614,54 @@ function resetChat() {
   latestPromptDisplay.style.display = 'none';
 }
 
+async function generateImage() {
+  const prompt = currentPrompt || latestPromptText.textContent.trim();
+  
+  if (!prompt || prompt.length === 0) {
+    addMessage('Please enter a prompt first.', 'assistant');
+    return;
+  }
+  
+  generateImageButton.disabled = true;
+  showLoading();
+  
+  // Send message to plugin code to generate image
+  parent.postMessage({
+    pluginMessage: {
+      type: 'generate-image',
+      prompt: prompt,
+      provider: 'dalle' // Can be made configurable
+    }
+  }, '*');
+}
+
+// Handle messages from plugin code
+window.addEventListener('message', (event) => {
+  const msg = event.data.pluginMessage;
+  if (!msg) return;
+  
+  switch (msg.type) {
+    case 'image-generation-start':
+      // Keep it quiet: use the same buffer spinner only
+      break;
+      
+    case 'image-generation-success':
+      generateImageButton.disabled = false;
+      hideLoading();
+      break;
+      
+    case 'image-generation-error':
+      generateImageButton.disabled = false;
+      hideLoading();
+      // Minimal feedback only on error
+      addMessage(`Failed to generate image: ${msg.error || 'Unknown error'}.`, 'assistant');
+      break;
+  }
+});
+
 // Event listeners
+generateImageButton.addEventListener('click', generateImage);
+
 chatForm.addEventListener('submit', (e) => {
   e.preventDefault();
   const message = chatInput.value.trim();

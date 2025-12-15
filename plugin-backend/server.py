@@ -1,14 +1,22 @@
-from flask import Flask, request, jsonify, send_file
+from flask import Flask, request, jsonify
 import tempfile
 import os
 import json
+import logging
+
 import openai
+from dotenv import load_dotenv
 from layout_predict import predict_layout_from_data, save_grids_as_images
 from chat_bot import chat_with_model, chat_with_prompt_refinement
+from image_generator import generate_image, image_to_base64, resize_image
 from flask_cors import CORS
 
 app = Flask(__name__)
 CORS(app)
+load_dotenv()
+logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def call_regular_gpt4o_mini(user_message, conversation_history, temperature=0.7):
     """Call regular GPT-4o-mini for general conversation."""
@@ -54,7 +62,7 @@ def call_regular_gpt4o_mini(user_message, conversation_history, temperature=0.7)
 @app.route('/predict', methods=['POST'])
 def predict():
     data = request.json
-    primer_path = "primer.jsonl"
+    primer_path = os.path.join(BASE_DIR, "primer.jsonl")
     field_map = {
         "title": "title_heat",
         "location": "location_heat",
@@ -159,6 +167,84 @@ def chat_refine():
         return jsonify({
             "error": f"Chat refinement failed: {str(e)}",
             "response": "I'm sorry, I encountered an error. Please try again."
+        }), 500
+
+@app.route('/generate-image', methods=['POST'])
+def generate_image_endpoint():
+    """
+    Generate an image from a prompt using the configured image generation provider.
+    
+    Request body:
+    {
+        "prompt": "your prompt text",
+        "provider": "dalle" | "replicate" | "midjourney_api" (optional),
+        "size": "1024x1024" (for DALL-E, optional),
+        "quality": "standard" | "hd" (for DALL-E, optional) - "standard" is faster,
+        "model": "stability-ai/sdxl" (for Replicate, optional)
+    }
+    
+    Returns:
+    {
+        "success": true,
+        "image_base64": "base64 encoded image",
+        "provider": "provider used",
+        "generation_time": 3.5  # seconds
+    }
+    
+    Typical generation times:
+    - DALL-E 3 (standard): 3-5 seconds
+    - DALL-E 3 (HD): 8-12 seconds (slower!)
+    - Replicate (fast models): 2-5 seconds
+    - Replicate (standard): 5-15 seconds
+    """
+    import time
+    start_time = time.time()
+    
+    data = request.json
+    
+    if not data or 'prompt' not in data:
+        return jsonify({"error": "Prompt is required"}), 400
+    
+    prompt = data['prompt']
+    provider = data.get('provider', None)
+    size = data.get('size', '1024x1024')
+    quality = data.get('quality', 'standard')  # Default to "standard" for speed
+    model = data.get('model', None)
+    
+    try:
+        # Generate image
+        kwargs = {}
+        if provider == "dalle":
+            kwargs['size'] = size
+            kwargs['quality'] = quality  # Use "standard" for faster generation
+        elif provider == "replicate" and model:
+            kwargs['model'] = model
+        
+        image_bytes = generate_image(prompt, provider=provider, **kwargs)
+        
+        # Resize if needed (Figma has size limits)
+        image_bytes = resize_image(image_bytes, max_width=2048, max_height=2048)
+        
+        # Convert to base64
+        image_base64 = image_to_base64(image_bytes)
+        
+        generation_time = time.time() - start_time
+        
+        return jsonify({
+            "success": True,
+            "image_base64": image_base64,
+            "provider": provider or "default",
+            "generation_time": round(generation_time, 2)
+        })
+        
+    except Exception as e:
+        generation_time = time.time() - start_time
+        logging.error(f"Image generation failed after {generation_time:.2f}s: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "message": "Failed to generate image. Please check your API keys and try again.",
+            "generation_time": round(generation_time, 2)
         }), 500
 
 if __name__ == '__main__':
